@@ -11,17 +11,24 @@
 
 import pandas as pd
 import json
+import yaml
 from datetime import datetime
 
 # stdprep does the standard prepping steps:
 # renaming columns via mapping, throwing out columns not in mapping, parsing date, inserting methodname and sender column
 # only the operations for given arguments are done
-def stdprep(df, mapfile=None, sender=None, method=None, datefmt=None, methodname_prefix=None):
+def stdprep(df, mapjson:str=None, mapyaml:str=None, sender=None, method=None, datefmt=None, methodname_prefix=None):
     # wir vereinheitlichen die column names und behalten nur die columns im mapping.
-    if mapfile is not None:
-        m = jsonff("mapping.json")
-        df = rename(df, m)
-        df = prune(df, m)
+    # support json and yaml
+    if mapjson is not None:
+        map = jsonff(mapjson)
+    if mapyaml is not None:
+        with open(mapyaml, "r") as file:
+            map = yaml.safe_load(file)
+    if mapjson is None and mapyaml is None:
+        print("error: either json or yaml mapping needed")
+    df = rename(df, map)
+    df = prune(df, map)
 
     # the following code assumes the standard column names as given in fhirbuild/csvtofhirobs.py
     
@@ -41,23 +48,26 @@ def stdprep(df, mapfile=None, sender=None, method=None, datefmt=None, methodname
     return df
 
 
-# rename renames df column names from to-from mapping
-#
-# warum to-from als parameter? die to-namen bleiben gleich, es scheint
-# angenehmer, sie in der ersten spalte zu haben.
-def rename(df, tofrommap):
-    fromtomap = {}
-    for k in tofrommap:
-        fromtomap[tofrommap[k]] = k
+# rename renames df column names from mapping
+# first the mapping was given in to-from direction with the num-names first, since they stay the same
+# but for sending mapping suggestions around it seems to be more natural to put the column names first and than the num-names, the direction in which the mapping is done.
+def rename(df, map):
+    #fromtomap = {}
+    #for k in tofrommap:
+    #    fromtomap[tofrommap[k]] = k
         
-    return df.rename(fromtomap, axis="columns")
+    return df.rename(map, axis="columns")
 
-# prune keeps only the dataframe columns that are a key in map
-def prune(df, tfmap):
-    allcols = list(df)
-    keepcols = list(tfmap.keys())
-    dropcols = list(filter(lambda x: x not in set(keepcols), allcols))
+# prune keeps only the dataframe columns that are a value in map
+def prune(df, map):
+    dfcols = list(df)
+    keepcols = list(map.values())
+    dropcols = list(filter(lambda x: x not in set(keepcols), dfcols))
     print(f"dropping columns {dropcols}")
+    notindf = list(filter(lambda x: x not in set(dfcols), keepcols))
+    if len(notindf) > 0:
+        raise Exception(f"error: these columns should be kept but not in df: {notindf}")
+
     return df[keepcols]
 
 # jsonff ('json-from-file') returns a json object read from file
