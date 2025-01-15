@@ -13,15 +13,15 @@ import pandas as pd
 import json
 import yaml
 from datetime import datetime
+from traction import traction
 
-# stdprep does the standard prepping steps:
-# renaming columns via mapping, throwing out columns not in mapping, parsing date, inserting methodname and sender column
-# only the operations for given arguments are done
 def stdprep(df, mapjson:str=None, mapyaml:str=None, sender=None, method=None, datefmt=None, methodname_prefix=None):
+    """stdprep does the standard prepping steps: renaming columns via mapping, throwing out columns not in mapping, parsing date, inserting methodname and sender column. only the steps for which arguments are given are done."""
+
     # wir vereinheitlichen die column names und behalten nur die columns im mapping.
     # support json and yaml
     if mapjson is not None:
-        map = jsonff(mapjson)
+        map = _jsonff(mapjson)
     if mapyaml is not None:
         with open(mapyaml, "r") as file:
             map = yaml.safe_load(file)
@@ -47,19 +47,42 @@ def stdprep(df, mapjson:str=None, mapyaml:str=None, sender=None, method=None, da
         
     return df
 
+def stdcheck(df, db, outfile=None):
+    """stdcheck does data checks against the db. it assumes that stdprep has run before.
+    for now it checks that the samples are there."""
+    # the out string is printed and optionally also written to outfile
+    out = ""
+    # start traction from the db connection
+    tr = traction(db)
+    # fish out the sampleids that are not in db
+    for i, row in df.iterrows():
+        sampleid = df.at[i, "id_SAMPLEID"]
+        if tr.sample(sampleid) == None:
+            out += sampleid + "\n"
 
-# rename renames df column names from mapping
-# first the mapping was given in to-from direction with the num-names first, since they stay the same
-# but for sending mapping suggestions around it seems to be more natural to put the column names first and than the num-names, the direction in which the mapping is done.
+    if out != "":
+        # print missing ids
+        print("sampleids not in db:")
+        print(out)
+        # write them to file if given
+        if outfile:
+            f = open(outfile, "w")
+            f.write(out)
+            f.close
+
+
 def rename(df, map):
+    """rename renames df column names from mapping.
+    first the mapping was given in to-from direction with the num-names first, since they stay the same but for sending mapping suggestions around it seems to be more natural to put the column names first and than the num-names, the direction in which the mapping is done."""
+
     #fromtomap = {}
     #for k in tofrommap:
     #    fromtomap[tofrommap[k]] = k
         
     return df.rename(map, axis="columns")
 
-# prune keeps only the dataframe columns that are a value in map
 def prune(df, map):
+    """prune keeps only the dataframe columns that are a value in map"""
     dfcols = list(df)
     keepcols = list(map.values())
     dropcols = list(filter(lambda x: x not in set(keepcols), dfcols))
@@ -70,11 +93,13 @@ def prune(df, map):
 
     return df[keepcols]
 
-# jsonff ('json-from-file') returns a json object read from file
-def jsonff(filename):
+
+def _jsonff(filename):
+    """jsonff ('json-from-file') returns a json object read from file"""
     with open(filename, "r") as f:
         return json.load(f)
 
-# gen_method_name generates a method name from prefix, sampleid and date
+
 def gen_method_name(prefix, sampleid, date:datetime):
+    """gen_method_name generates a method name from prefix, sampleid and date"""
     return prefix + '_' + str(sampleid).strip() + '_' + datetime.strftime(date, "%d.%m.%Y %H:%M:%S")
