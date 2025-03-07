@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"] # list of packages needed to build your package
-build-backend = "hatchling.build" # name of the python object that frontends use to perform the build
+requires = ["setuptools"] # list of packages needed to build your package
+build-backend = "setuptools.build_meta" # name of the python object that frontends use to perform the build
 
 [project]
 name = "preplib"
@@ -13,9 +13,13 @@ readme = "readme.md"
 # requires-python = ">=3.8"
 dependencies = [
   "pandas",
-  "pyyaml",
-  "traction @ git+https://github.com/numlims/traction"
+  "pyyaml"
+  #"traction @ git+https://github.com/numlims/traction"
 ]
 classifiers = [
   "Programming Language :: Python :: 3"
 ]
+[tool.setuptools]
+packages = ["preplib"]
+[project.scripts]
+preplib = "preplib:__main__"
