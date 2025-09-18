@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta" # name of the python object that fronten
 
 [project]
 name = "preplib"
-version = "0.0.1"
+version = "0.0.3"
 authors = [
   { name="numlims", email="numlims@med.uni-greifswald.de"}
 ]
@@ -13,8 +13,10 @@ readme = "readme.md"
 # requires-python = ">=3.8"
 dependencies = [
   "pandas",
-  "pyyaml"
+  "pyyaml",
   #"traction @ git+https://github.com/numlims/traction"
+  "traction @ https://github.com/numlims/traction/archive/refs/tags/v0.0.5.zip",  
+  "dip @ https://github.com/numlims/dip/archive/refs/tags/v0.0.2.zip"  
 ]
 classifiers = [
   "Programming Language :: Python :: 3"
