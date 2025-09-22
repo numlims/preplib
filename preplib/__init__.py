@@ -52,6 +52,10 @@ def stdprep(df, mapjson:str=None, mapyaml:str=None, sender=None, method=None, da
     if methodname_prefix is not None:
         df["methodname"] = df.apply(lambda row: gen_method_name(methodname_prefix, row["idcs_SAMPLEID"], row["effective_date_time"]), axis=1)
 
+    # insert a subject_idcontainer column if there is none
+    if not "subject_idcontainer" in map.keys():
+        df["subject_idcontainer"] = "LIMSPSN"
+
     return df
 
 def stdcheck(df, db, outfile=None):
@@ -116,7 +120,7 @@ def prune(df, outtoin):
     return df[keepcols]
 
 def insaqg_auto(df):
-    """insaqg_auto inserts aliquotgroups automatically. it puts aliquots that have both the same parent and the same material into the same aliquotgroup (should be the standard case). it assumes fhirbuild-ready columns, namely parent_sampleid, and type. the aqtgroups also get the organization_unit, received_date, and subject_limspsn of their respective aliquots.  it updates the fhirids along the way."""
+    """insaqg_auto inserts aliquotgroups automatically. it puts aliquots that have both the same parent and the same material into the same aliquotgroup (should be the standard case). it assumes fhirbuild-ready columns, namely parent_sampleid, and type. the aqtgroups also get the organization_unit, received_date, and subject_id of their respective aliquots.  it updates the fhirids along the way."""
     
     # group the aliquots by parent and material
     byparmat = {}
@@ -155,7 +159,7 @@ def insaqg_auto(df):
 
     
 def insaqg(df, groups):
-    """insaqg inserts the aliquotgroups given in groups. groups is an array of arrays, each member array holding the parent sampleid as first element and the aliquot ids that go into the group as subsequent elements. there can be multiple aliquotgroups with the same parent. it assumes fhirbuild column names. the aqtgroup get the organization_unit, received_date, and subject_limspsn of their respective aliquots.  it updates the fhirids along the way."""
+    """insaqg inserts the aliquotgroups given in groups. groups is an array of arrays, each member array holding the parent sampleid as first element and the aliquot ids that go into the group as subsequent elements. there can be multiple aliquotgroups with the same parent. it assumes fhirbuild column names. the aqtgroup get the organization_unit, received_date, and subject_id of their respective aliquots.  it updates the fhirids along the way."""
 
     nonaliquots = []
     aqtbyid = {} # aliquots by their sampleid
@@ -194,7 +198,7 @@ def insaqg(df, groups):
             "organization_unit": dig(firstaqt, "organization_unit"),
             "parent_sampleid": parentid,
             "received_date": dig(firstaqt, "received_date"),
-            "subject_limspsn": dig(firstaqt, "subject_limspsn"),
+            "subject_id": dig(firstaqt, "subject_id"),
             "type": dig(firstaqt, "type")
         }
 
