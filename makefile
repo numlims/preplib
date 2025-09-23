@@ -4,6 +4,7 @@ name = "preplib"
 version = $(shell git tag | tail -1 | tr -d v)
 
 all:
+	ct preplib/init.ct
 	python3 -m build --no-isolation
 
 install:
