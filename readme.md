@@ -14,3 +14,13 @@ rename
 prune
 gen_method_name
 ```
+
+## dev
+
+assemble code from the .ct files with [ct](https://github.com/tnustrings/ct).
+
+build and install:
+
+```
+make install
+```
