@@ -1,4 +1,4 @@
-name = "preplib"
+name = preplib
 
 # delete the v from the version tag cause python build seems to strip it as well
 version = $(shell git tag | tail -1 | tr -d v)
@@ -12,7 +12,8 @@ install:
 	pip install "./dist/preplib-${version}-py3-none-any.whl" --no-deps --force-reinstall
 
 doc:
-	pdoc --html src/preplib --force
+	make
+	pdoc "./${name}" -o html
 
 publish:
 	make

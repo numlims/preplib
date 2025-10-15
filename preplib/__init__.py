@@ -6,6 +6,12 @@ import tr
 import re
 from dip import dig, dis
 def stdprep(df, mapjson:str=None, mapyaml:str=None, sender=None, method=None, datefmt=None, methodname_prefix=None):
+    """
+    stdprep does the standard prepping steps: renaming columns via
+    mapping, throwing out columns not in mapping, parsing date, inserting
+    methodname and sender column. only the steps for which arguments are
+    given are done.
+    """
     if mapjson is not None:
         map = _jsonff(mapjson)
     if mapyaml is not None:
@@ -29,6 +35,9 @@ def stdprep(df, mapjson:str=None, mapyaml:str=None, sender=None, method=None, da
         df["subject_idcontainer"] = "LIMSPSN"
     return df
 def stdcheck(df, db, outfile=None):
+    """
+    stdcheck does data checks against the db. it assumes that stdprep has run before. for now it checks that the samples are there.
+    """
     out = ""
     trac = tr.traction(db)
     for i, row in df.iterrows():
@@ -44,6 +53,10 @@ def stdcheck(df, db, outfile=None):
             f.write(out)
             f.close
 def rename(df, outtoin):
+    """
+    rename renames df column names from mapping. give the mapping in the
+    direction of output-col: input-col
+    """
     # the colunms of the dataframe
     dfcols = list(df)
     # the expected column names from the mapping
@@ -54,6 +67,9 @@ def rename(df, outtoin):
     intoout = _flip(outtoin)
     return df.rename(intoout, axis="columns")
 def prune(df, outtoin):
+    """
+    prune keeps only the dataframe columns that are a key in map.
+    """
     dfcols = list(df)
     keepcols = list(outtoin.keys())
     dropcols = list(filter(lambda x: x not in set(keepcols), dfcols))
@@ -63,6 +79,14 @@ def prune(df, outtoin):
         raise Exception(f"error: these columns should be kept but not in df: {notindf}")
     return df[keepcols]
 def insaqg_auto(df):
+    """
+    insaqg_auto inserts aliquotgroups automatically. it puts aliquots that
+    have both the same parent and the same material into the same
+    aliquotgroup (should be the standard case). it assumes fhirbuild-ready
+    columns, namely parent_sampleid, and type. the aqtgroups also get the
+    organization_unit, received_date, and subject_id of their respective
+    aliquots.  it updates the fhirids along the way.
+    """
     byparmat = {}
     nonaliquots = []
     for i, row in df.iterrows():
@@ -85,6 +109,15 @@ def insaqg_auto(df):
             groups.append(group)
     return insaqg(df, groups)
 def insaqg(df, groups):
+    """
+    insaqg inserts the aliquotgroups given in groups. groups is an array
+    of arrays, each member array holding the parent sampleid as first
+    element and the aliquot ids that go into the group as subsequent
+    elements. there can be multiple aliquotgroups with the same parent. it
+    assumes fhirbuild column names. the aqtgroup get the
+    organization_unit, received_date, and subject_id of their respective
+    aliquots.  it updates the fhirids along the way.
+    """
     nonaliquots = []
     aqtbyid = {} 
     for i, row in df.iterrows():
@@ -126,6 +159,10 @@ def insaqg(df, groups):
             out.append(aqt)
     return pd.DataFrame.from_dict(out)
 def messparam_yaml_stub(map:dict) -> str:
+    """
+    messparam_yaml_stub returns boilerplate yaml for messparameter or
+    messprofil building with masterblaster from the codes in the map.
+    """
     params = []
     for value in map.values():
         if not re.match(r"^cmp_", value):
@@ -137,11 +174,17 @@ def messparam_yaml_stub(map:dict) -> str:
         params.append(param)
     return yaml.dump(params)
 def gen_method_name(prefix, sampleid, date:datetime=None):
+    """
+    gen_method_name generates a method name from prefix, sampleid and date.
+    """
     name = prefix + '_' + str(sampleid).strip() 
     if date:
         name += '_' + datetime.strftime(date, "%d.%m.%Y %H:%M:%S")
     return name
 def _flip(map):
+    """
+    _flip flips the map's keys and values.
+    """
     out = {}
     for k in map:
         v = map[k]
@@ -151,5 +194,7 @@ def _flip(map):
         out[v] = k
     return out
 def _jsonff(filename):
+    """
+    """
     with open(filename, "r") as f:
         return json.load(f)
